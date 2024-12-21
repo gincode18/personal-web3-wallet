@@ -1,7 +1,6 @@
-
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { generateMnemonic } from "bip39"
 import { Toaster } from 'sonner'
 import { SolanaWallet } from '../components/SolanaWallet'
@@ -10,13 +9,22 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function Home() {
   const [mnemonic, setMnemonic] = useState("")
 
+  useEffect(() => {
+    const storedMnemonic = localStorage.getItem('mnemonic')
+    if (storedMnemonic) {
+      setMnemonic(storedMnemonic)
+    }
+  }, [])
+
   const generateNewMnemonic = () => {
     const newMnemonic = generateMnemonic()
     setMnemonic(newMnemonic)
+    localStorage.setItem('mnemonic', newMnemonic)
   }
 
   const mnemonicWords = mnemonic.split(" ")
@@ -31,31 +39,40 @@ export default function Home() {
         </CardHeader>
         <CardContent>
           <Button onClick={generateNewMnemonic} className="mb-4">Generate New Mnemonic</Button>
-          {mnemonic && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {[...Array(3)].map((_, colIndex) => (
-                    <TableHead key={colIndex}>Word {colIndex + 1}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[...Array(4)].map((_, rowIndex) => (
-                  <TableRow key={rowIndex}>
-                    {[...Array(3)].map((_, colIndex) => {
-                      const wordIndex = rowIndex * 3 + colIndex
-                      return (
-                        <TableCell key={colIndex}>
-                          {wordIndex + 1}. {mnemonicWords[wordIndex] || ''}
-                        </TableCell>
-                      )
-                    })}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <AnimatePresence>
+            {mnemonic && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {[...Array(3)].map((_, colIndex) => (
+                        <TableHead key={colIndex}>Word {colIndex + 1}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[...Array(4)].map((_, rowIndex) => (
+                      <TableRow key={rowIndex}>
+                        {[...Array(3)].map((_, colIndex) => {
+                          const wordIndex = rowIndex * 3 + colIndex
+                          return (
+                            <TableCell key={colIndex}>
+                              {wordIndex + 1}. {mnemonicWords[wordIndex] || ''}
+                            </TableCell>
+                          )
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
 

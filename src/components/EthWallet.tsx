@@ -1,27 +1,42 @@
-
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { mnemonicToSeed } from "bip39"
 import { Wallet, HDNodeWallet } from "ethers"
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { motion, AnimatePresence } from "framer-motion"
+
+interface EthWalletData {
+  address: string
+  privateKey: string
+}
 
 export const EthWallet = ({ mnemonic }: { mnemonic: string }) => {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [addresses, setAddresses] = useState<string[]>([])
+  const [wallets, setWallets] = useState<EthWalletData[]>([])
+
+  useEffect(() => {
+    const storedWallets = localStorage.getItem('ethWallets')
+    if (storedWallets) {
+      setWallets(JSON.parse(storedWallets))
+    }
+  }, [])
 
   const addEthereumWallet = async () => {
     try {
       const seed = await mnemonicToSeed(mnemonic)
-      const derivationPath = `m/44'/60'/${currentIndex}'/0'`
+      const derivationPath = `m/44'/60'/${wallets.length}'/0'`
       const hdNode = HDNodeWallet.fromSeed(seed)
       const child = hdNode.derivePath(derivationPath)
-      const privateKey = child.privateKey
-      const wallet = new Wallet(privateKey)
-      setCurrentIndex(currentIndex + 1)
-      setAddresses([...addresses, wallet.address])
+      const wallet = new Wallet(child.privateKey)
+      const newWallet: EthWalletData = {
+        address: wallet.address,
+        privateKey: wallet.privateKey
+      }
+      const updatedWallets = [...wallets, newWallet]
+      setWallets(updatedWallets)
+      localStorage.setItem('ethWallets', JSON.stringify(updatedWallets))
       toast.success('Ethereum wallet added successfully!')
     } catch (error) {
       toast.error('Failed to add Ethereum wallet')
@@ -36,11 +51,22 @@ export const EthWallet = ({ mnemonic }: { mnemonic: string }) => {
       </CardHeader>
       <CardContent>
         <Button onClick={addEthereumWallet} className="mb-4">Add Ethereum Wallet</Button>
-        {addresses.map((address, index) => (
-          <div key={index} className="bg-secondary p-2 rounded mb-2">
-            Wallet {index + 1}: {address}
-          </div>
-        ))}
+        <AnimatePresence>
+          {wallets.map((wallet, index) => (
+            <motion.div
+              key={wallet.address}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className="bg-secondary p-2 rounded mb-2"
+            >
+              <p>Wallet {index + 1}</p>
+              <p>Address: {wallet.address}</p>
+              <p>PrivateKey: {wallet.privateKey}</p>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </CardContent>
     </Card>
   )
