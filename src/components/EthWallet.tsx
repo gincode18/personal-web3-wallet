@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion, AnimatePresence } from "framer-motion"
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 
 interface EthWalletData {
   address: string
@@ -15,6 +16,7 @@ interface EthWalletData {
 
 export const EthWallet = ({ mnemonic }: { mnemonic: string }) => {
   const [wallets, setWallets] = useState<EthWalletData[]>([])
+  const [visibleKeys, setVisibleKeys] = useState<{ [key: string]: boolean }>({})
 
   useEffect(() => {
     const storedWallets = localStorage.getItem('ethWallets')
@@ -44,6 +46,10 @@ export const EthWallet = ({ mnemonic }: { mnemonic: string }) => {
     }
   }
 
+  const togglePrivateKey = (address: string) => {
+    setVisibleKeys(prev => ({ ...prev, [address]: !prev[address] }))
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -59,11 +65,25 @@ export const EthWallet = ({ mnemonic }: { mnemonic: string }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="bg-secondary p-2 rounded mb-2"
+              className="bg-secondary p-4 rounded-lg mb-4"
             >
-              <p>Wallet {index + 1}</p>
-              <p>Address: {wallet.address}</p>
-              <p>PrivateKey: {wallet.privateKey}</p>
+              <p className="font-semibold mb-2">Wallet {index + 1}</p>
+              <p className="mb-2"><span className="font-medium">Address:</span> {wallet.address}</p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium">Private Key:</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => togglePrivateKey(wallet.address)}
+                >
+                  {visibleKeys[wallet.address] ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                </Button>
+              </div>
+              {visibleKeys[wallet.address] && (
+                <p className="text-sm break-all bg-muted p-2 rounded">
+                  {wallet.privateKey}
+                </p>
+              )}
             </motion.div>
           ))}
         </AnimatePresence>

@@ -1,22 +1,25 @@
+
 'use client'
 
 import { useState, useEffect } from "react"
 import { mnemonicToSeed } from "bip39"
 import { derivePath } from "ed25519-hd-key"
-import { Keypair, PublicKey } from "@solana/web3.js"
-import nacl from "tweetnacl"
+import { Keypair } from "@solana/web3.js"
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion, AnimatePresence } from "framer-motion"
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
+import bs58 from 'bs58'
 
 interface SolanaWalletData {
   publicKey: string
-  secretKey: Uint8Array
+  secretKey: string // Store as base58 encoded string
 }
 
 export function SolanaWallet({ mnemonic }: { mnemonic: string }) {
   const [wallets, setWallets] = useState<SolanaWalletData[]>([])
+  const [visibleKeys, setVisibleKeys] = useState<{ [key: string]: boolean }>({})
 
   useEffect(() => {
     const storedWallets = localStorage.getItem('solanaWallets')
@@ -33,7 +36,7 @@ export function SolanaWallet({ mnemonic }: { mnemonic: string }) {
       const keypair = Keypair.fromSeed(derivedSeed)
       const newWallet: SolanaWalletData = {
         publicKey: keypair.publicKey.toBase58(),
-        secretKey: keypair.secretKey
+        secretKey: bs58.encode(keypair.secretKey) // Encode secret key as base58
       }
       const updatedWallets = [...wallets, newWallet]
       setWallets(updatedWallets)
@@ -43,6 +46,10 @@ export function SolanaWallet({ mnemonic }: { mnemonic: string }) {
       toast.error('Failed to add Solana wallet')
       console.error(error)
     }
+  }
+
+  const togglePrivateKey = (publicKey: string) => {
+    setVisibleKeys(prev => ({ ...prev, [publicKey]: !prev[publicKey] }))
   }
 
   return (
@@ -60,10 +67,25 @@ export function SolanaWallet({ mnemonic }: { mnemonic: string }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="bg-secondary p-2 rounded mb-2"
+              className="bg-secondary p-4 rounded-lg mb-4"
             >
-              <p>Wallet {index + 1}</p>
-              <p>Public Key: {wallet.publicKey}</p>
+              <p className="font-semibold mb-2">Wallet {index + 1}</p>
+              <p className="mb-2"><span className="font-medium">Public Key:</span> {wallet.publicKey}</p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium">Private Key:</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => togglePrivateKey(wallet.publicKey)}
+                >
+                  {visibleKeys[wallet.publicKey] ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                </Button>
+              </div>
+              {visibleKeys[wallet.publicKey] && (
+                <p className="text-sm break-all bg-muted p-2 rounded">
+                  {wallet.secretKey}
+                </p>
+              )}
             </motion.div>
           ))}
         </AnimatePresence>
